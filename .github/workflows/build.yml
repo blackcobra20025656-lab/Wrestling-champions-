@@ -15,19 +15,18 @@ jobs:
 
       - name: Extract project ZIP
         run: |
-          mkdir project
-          unzip -q WrestlingChampions_Android_Project.zip -d project
+          mkdir -p project
+          unzip -o WrestlingChampions_Android_Project.zip -d project
 
       - name: Find Android project
         run: |
-          GRADLEW=$(find project -name gradlew -type f | head -1)
-          if [ -z "$GRADLEW" ]; then
-            echo "gradlew was not found"
-            find project -maxdepth 3 -type f | head -100
+          PROJECT_DIR=$(dirname "$(find project -name settings.gradle -type f | head -1)")
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Android project not found"
+            find project -maxdepth 4 -type f | head -100
             exit 1
           fi
-          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
-          echo "PROJECT_DIR=$(dirname "$GRADLEW")" >> $GITHUB_ENV
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -35,11 +34,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
